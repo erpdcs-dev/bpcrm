@@ -634,6 +634,9 @@ window.BPCRMList = class BPCRMList {
 				font-size:10pt;
 				font-weight:bold;
 			}
+			.bpcrm-list-row { 
+				margin-top:5px;
+			}
 			.bpcrm-list-row:nth-child(even){
                         	background-color:rgb(240,240,240);
                 	}
@@ -751,113 +754,6 @@ window.BPCRMList = class BPCRMList {
 	}
 };
 
-window.BPCRMLeadsManager = class BPCRMLeadsManager {
-	
-	constructor(controller) {
-		this.id = "LeadsManager";
-		this.controller = controller;
-		this.wrapper = controller.wrapper;
-		this.body_wrapper = this.wrapper.querySelector('.bpcrm-tile-body');
-		this.filter_wrapper = this.body_wrapper.querySelector('.bpcrm-tile-filter');
-		this.content_wrapper = this.body_wrapper.querySelector('.bpcrm-tile-content');
-		this.list = false;
-	}
-	make_filter() { 
-		var filter_fields = [
-			{	'fieldname' : 'sort_by', 'label' : 'By', 'fieldtype' : 'Select', 'default_value' : 'name', 'lg_width' : 2, 'md_width' : 2, 'sm_width' : 2 , 
-				'hidden' : 0, 'options' : '', 'icon' : '', 'read_only' : 0,
-				'select_options' : [
-						{ 'value' : 'name', 'label' : 'ID' },
-						{ 'value' : 'display_name', 'label' : 'Name' },
-						{ 'value' : 'city', 'label' : 'City' },
-						{ 'value' : 'country', 'label' : 'Country' },
-				],
-			},
-			{	'fieldname' : 'email', 'label' : 'Email', 'fieldtype' : 'Data', 'default_value' : '', 'lg_width' : 3, 'md_width' : 3, 'sm_width' : 3 , 
-				'hidden' : 0, 'options' : '', 'icon' : '', 'read_only' : 0},
-			{	'fieldname' : 'city', 'label' : 'City', 'fieldtype' : 'Data', 'default_value' : '', 'lg_width' : 3, 'md_width' : 3, 'sm_width' : 3 , 
-				'hidden' : 0, 'options' : '', 'doctype' : '', 'icon' : '', 'read_only' : 0},
-			{	'fieldname' : 'country', 'label' : 'Country', 'fieldtype' : 'Link', 'default_value' : '', 'lg_width' : 3, 'md_width' : 3, 'sm_width' : 3 , 
-				'hidden' : 0, 'options' : '', 'doctype' : 'Country', 'icon' : '', 'read_only' : 0},
-		];
-		this.filter = new BPCRMFilter(this,filter_fields);
-		this.filter.make();
-	}
-
-	make_list() { 
-		var list_definition = { 
-			'globals' : {
-				'doctype' : 'bpcrm_lead'
-			},
-			'fields' : [
-					{	'fieldname' : 'display_name', 'label' : 'Name', 'fieldtype' : 'Data', 'width' : 300  },
-					{	'fieldname' : 'email', 'label' : 'Email', 'fieldtype' : 'Data', 'width' : 300  },
-					{	'fieldname' : 'mobile', 'label' : 'Mobile', 'fieldtype' : 'Data', 'width' : 300  },
-					{	'fieldname' : 'phone', 'label' : 'Phone', 'fieldtype' : 'Data', 'width' : 300  },
-			],
-			'actions' : {
-				'can_create' 	: 1,
-				'can_edit'	: 1,
-				'can_view'	: 0,
-				'can_delete'	: 1
-			}
-		};
-		this.list = new BPCRMList(this,this.content_wrapper,list_definition);
-		this.list.set_filter(this.filter.get());
-		this.list.refresh();
-	}
-
-	make_detail_dialog(record_id) { 
-		if (record_id) {
-			open("/app/bpcrm_lead/" + record_id,"__blank__");
-		}
-		else {
-			open("/app/bpcrm_lead/new","__blank__");
-		}
-	}
-
-	delete_record(record_id) { 
-		var me = this;
-		frappe.confirm(
-			'Do you really want to delete this lead?',
-			function(){
-				frappe.call({
-					'method' : 'frappe.client.delete',
-					'args' : {
-						'doctype' : 'bpcrm_lead',
-						'name' : record_id
-					},
-					'callback' : function(r) { 
-						frappe.msgprint("Lead has been deleted");
-						me.refresh();
-					}
-				});
-			},
-			function(){
-			}
-		);
-	}
-
-	make() { 
-		this.make_filter();
-		this.make_list();
-	}
-
-	refresh() { 
-		this.list.set_filter(this.filter.get());
-		this.list.refresh();
-	}
-
-	list_dispatch(event,data) { 
-		console.log(event);
-		console.log(data);
-		if (event == "LeadsManagerList.add") return this.make_detail_dialog(false);
-		if (event == "LeadsManagerList.edit") return this.make_detail_dialog(data);
-		if (event == "LeadsManagerList.delete") return this.delete_record(data);
-	}
-		
-};
-
 window.BPCRMTile = class BPCRMTilei { 
 	
 	constructor(controller,tile) { 
@@ -873,13 +769,16 @@ window.BPCRMTile = class BPCRMTilei {
 		<style>
 		</style>
 		<div class="col-lg-12 col-md-12 col-sm-12 row bpcrm-tile-header">
-			<div class="col-lg-10 col-md-10 col-sm-10 bpcrm-tile-header-title">{{ title }}</div>
-			<div class="col-lg-2 col-md-2 col-sm-2 bpcrm-tile-header-icons hidden">
-				<svg class="es-icon es-line  icon-sm bpcrm-small hidden" style="" aria-hidden="true">
-					<use class="mb-1" href="#es-line-down"></use>
+			<div class="col-lg-9 col-md-9 col-sm-9 bpcrm-tile-header-title">{{ title }}</div>
+			<div class="col-lg-3 col-md-3 col-sm-3 bpcrm-tile-header-icons hidden">
+				<svg class="icon icon-md bpcrm-refresh" style="background-color:rgb(255,255,255);" aria-hidden="true">
+					<use class="mb-1" href="#icon-refresh"></use>
 				</svg>
-				<svg class="es-icon es-line  icon-sm bpcrm-large" style="" aria-hidden="true">
-					<use class="mb-1" href="#es-line-up"></use>
+				<svg class="icon icon-md bpcrm-small hidden" style="background-color:rgb(255,255,255);" aria-hidden="true">
+					<use class="mb-1" href="#icon-website"></use>
+				</svg>
+				<svg class="icon line  icon-md bpcrm-large" style="background-color:rgb(255,255,255);" aria-hidden="true">
+					<use class="mb-1" href="#icon-website"></use>
 				</svg>
 			</div>
 		</div>
@@ -906,6 +805,10 @@ window.BPCRMTile = class BPCRMTilei {
 		this.tile_wrapper.querySelector('.bpcrm-large').onclick = function() { 
 			this.handler.maximize();
 		};
+		this.tile_wrapper.querySelector('.bpcrm-refresh').handler = this;
+		this.tile_wrapper.querySelector('.bpcrm-refresh').onclick = function() { 
+			this.handler.refresh();
+		};
 		if (this.tile.maximized) { 
 			this.maximize();
 		}
@@ -923,6 +826,12 @@ window.BPCRMTile = class BPCRMTilei {
 		if (! component) return;
 		this.app = eval("new " + component + "(this);");
 		this.app.make();
+	}
+
+	refresh() { 
+		if (this.app['refresh'] != undefined) { 
+			this.app.refresh();
+		}
 	}
 
 	maximize() { 
@@ -1016,6 +925,9 @@ window.BPCRMTileCollection = class BPCRMTileCollection {
 			display:block;
 			width: 3800px;
 		}
+		.bpcrm-refresh {
+			margin-right: 10px;
+		}
 		input {
 		 font-size:10pt;
 		 }
@@ -1086,6 +998,11 @@ window.BPCRMDashboard = class BPCRMDashboard {
 				'async' : false,
 				'callback' : function(r) {
 					me.tile_collections[collection.tile_collection] = r.message;
+					for (var i=0; i < r.message.tiles.length; i++) { 
+						if (r.message.tiles[i].code) { 
+							eval(r.message.tiles[i].code);
+						}
+					}
 				}
 			});
 		}
