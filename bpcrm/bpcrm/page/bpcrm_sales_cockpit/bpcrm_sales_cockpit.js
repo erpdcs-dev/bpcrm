@@ -599,7 +599,8 @@ window.BPCRMList = class BPCRMList {
 		frappe.call({
 			'method' : 'bpcrm.bpcrm.page.bpcrm_sales_cockpit.get_data',
 			'args' : {
-				'doctype' : 'bpcrm_lead',
+				'doctype' : this.list_definition.globals.doctype,
+				'search' : this.list_definition.search,
 				'filter' : JSON.stringify(this.filter_doc)
 			},
 			'async' : false,
@@ -668,7 +669,7 @@ window.BPCRMList = class BPCRMList {
 			}
 			</style>
 			<div class="bpcrm-icon-section">
-				{% if actions.can_create %}<div class="bpcrm-list-add-record"  style="font-size:20pt;font-weight:bold;">+</div>{% endif %}
+				{% if actions.can_create %}<div class="bpcrm-list-add-record"  style="font-size:20pt;font-weight:bold;">+</div>{% else %}<div class=""  style="font-size:20pt;font-weight:bold;">&nbsp;</div>{% endif %}
 			</div>
 			{% for field in fields %} 
 				<div class="bpcrm-list-header-field" id="hdr_{{ field.fieldname }}" style="width:{{ field.width }}px;text-align:left;">

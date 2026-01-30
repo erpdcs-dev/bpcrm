@@ -6,7 +6,7 @@ import frappe
 from frappe import _
 
 @frappe.whitelist()
-def get_data(doctype,filter):
+def get_data(doctype,search,filter):
 
     try:
         filter_doc = json.loads(filter)
@@ -29,6 +29,20 @@ def get_data(doctype,filter):
     del(filter_doc['sort_direction'])
     del(filter_doc['sort_by'])
 
+    search_expr = ""
+    if filter_doc['search']:
+        condition = "="
+        value = filter_doc['search']
+        if value.find("*") >= 0:
+            value = value.replace("*","%")
+            condition = "like"
+
+        search_fields = json.loads(search)
+        for i in range(len(search_fields)):
+            if search_expr:
+                search_expr += " or "
+            search_expr += search_fields[i] + " " + condition + " " + frappe.db.escape(str(value))
+
     where = ""
     for name in filter_doc:
         if filter_doc[name]:
@@ -39,15 +53,18 @@ def get_data(doctype,filter):
                 condition = "like"
 
             expr = ""
-            if name == "search":
-                if doctype == "bpcrm_lead":
-                    expr = "display_name " + condition + " " + frappe.db.escape(str(value))
-            else:
+            if name != "search":
                 expr = name + " " + condition + " " + frappe.db.escape(str(value))
 
-            if where:
-                where += " and "
-            where += " " + expr
+                if where:
+                    where += " and "
+                where += " " + expr
+
+    if search_expr:
+        if where:
+            where += " and "
+        where += "( " + search_expr + " )"
+
 
     sql = "select * from `tab" + doctype + "` "
     if where:
