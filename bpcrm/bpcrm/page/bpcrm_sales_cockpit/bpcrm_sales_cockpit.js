@@ -574,6 +574,119 @@ window.BPCRMFilter = class BPCRMFilter {
 	}
 };
 
+window.BPCRMChart = class BPCRMChart {
+	constructor(controller) { 
+		this.controller 	= controller;
+		this.wrapper 		= controller.wrapper;
+		this.id 		= controller.id + 'Chart';
+		this.filter_doc		= {
+			'search'		: '',
+			'page_size' 		: 20,
+			'sort_direction' 	: 'Ascending',
+			'sort_by' 		: 'name'
+		};
+		this.result		= [];
+	}
+
+	set_filter(filter_doc) { 
+		this.filter_doc = filter_doc;
+	}
+
+	load(query_id) {
+		var me = this;
+		frappe.call({
+			'method' : 'bpcrm.bpcrm.page.bpcrm_sales_cockpit.chart_query',
+			'args' : {
+				'query_id' : query_id,
+				'filter' : JSON.stringify(this.filter_doc)
+			},
+			'async' : false,
+			'callback' : function(r) { 
+				console.log(r);
+				me.result = r.message.result;
+			}
+		});
+
+	}
+
+	make() { 
+		var template = `
+		<div style="overflow-y:scroll;">
+		<div id="chart" style="width:__width__px;"></div>
+		</div>
+		`;
+		var x_axis 	= this.result.x_axis;
+		var y_axis 	= this.result.y_axis;
+		var title 	= this.result.title;
+		var type 	= this.result.type;
+		var color 	= this.result.color;
+		var height 	= this.result.height;
+		var width 	= this.result.width;
+		var labels 	= [];
+		var values 	= [];
+
+		if (this.result.data.length == 0) return;
+
+		for (var i=0; i < this.result.data.length; i++) { 
+			var record = this.result.data[i];
+			labels.push(record[x_axis]);
+			values.push(record[y_axis]);
+		}
+
+		var data = {
+			'labels' : labels,
+			'datasets' : [
+				{
+					'name' : title,
+					'values' : values
+				}
+			]
+		};
+		console.log(data);
+
+		this.wrapper.querySelector('.bpcrm-tile-body').innerHTML = template.replace('__width__',width);
+
+		const chart = new frappe.Chart("#chart", { 
+    		title: title,
+    		data: data,
+    		type: type,
+    		height: height,
+    		colors: [ color ]
+		});
+
+	}
+
+};
+
+window.BPCRMMap = class BPCRMMap {
+	constructor(controller,query) { 
+		this.controller 	= controller;
+		this.wrapper 		= controller.wrapper;
+		this.id 		= controller.id + 'Map';
+		this.query		= query;
+		this.api_key		= "AIzaSyCt6AKQ0r4924zGfCb9MHV2P-A1JN-rbbQ";
+	}
+
+	make() { 
+		var template = `
+		<iframe
+ 			width="600"
+  			height="450"
+  			style="border:0"
+  			loading="lazy"
+  			allowfullscreen
+  			referrerpolicy="no-referrer-when-downgrade"
+  			src="https://www.google.com/maps/embed/v1/place?key={{ api_key }}
+    			&q={{ query }}&maptype=satellite">
+		</iframe>
+		`;
+		var context = { 'query' : this.query, 'api_key' : this.api_key };
+		var html = frappe.render(template,context);
+		this.wrapper.querySelector('.bpcrm-tile-body').innerHTML = html;
+	}
+
+};
+
 window.BPCRMList = class BPCRMList {
 	constructor(controller,wrapper,list_definition) { 
 		this.controller = controller;
@@ -699,7 +812,7 @@ window.BPCRMList = class BPCRMList {
 					</div>{% endif %}
 				</div>
 				{% for field in def.fields %} 
-					<div class="bpcrm-list-content-field" data-field-id="{{ record.name }}_{{ field.fieldname }}" style="width:{{ field.width }}px;text-align:left;">
+					<div class="bpcrm-list-content-field" data-record-id="{{ record.name }}" data-field-id="{{ field.fieldname }}" style="width:{{ field.width }}px;text-align:left;">
 					{{ record[field.fieldname] }}
 					</div>
 				{% endfor %}
@@ -736,8 +849,21 @@ window.BPCRMList = class BPCRMList {
 				this.handler.delete_record(this);
 			};
 		});
+		this.wrapper.querySelectorAll('.bpcrm-list-content-field').forEach(function(element) { 
+			element.handler = me;
+			element.onclick = function() { 
+				this.handler.select_record(this);
+			};
+		});
 	}
 
+	select_record(element) { 
+		var record_id = element.getAttribute('data-record-id');
+		var field_id = element.getAttribute('data-field-id');
+		if (this.controller['list_dispatch'] != undefined ) { 
+			this.controller.list_dispatch(this.id + ".recordSelected",{ 'record_id' : record_id, 'field_id' : field_id});
+		}
+	}
 	add_record(element) { 
 		if (this.controller['list_dispatch'] != undefined ) { 
 			this.controller.list_dispatch(this.id + ".add",'');
@@ -755,7 +881,7 @@ window.BPCRMList = class BPCRMList {
 	}
 };
 
-window.BPCRMTile = class BPCRMTilei { 
+window.BPCRMTile = class BPCRMTile { 
 	
 	constructor(controller,tile) { 
 		this.controller = controller;
@@ -763,6 +889,30 @@ window.BPCRMTile = class BPCRMTilei {
 		this.tile = tile;
 		this.tile_wrapper = this.wrapper.querySelector('.bpcrm-tile[data-tile-id="' + this.tile.id + '"]');
 		this.app = false;
+	}
+
+	message(text) { 
+		console.log(new Date().toLocaleString() + " : " + this.tile.id + " - " + text);
+	}
+
+	is_collection_ready() { 
+		return this.controller.is_collection_ready();
+	}
+
+	invoke(event,data) { 
+		if (! this.app) return false;
+		if (this.app['event_handler'] != undefined) {
+			return this.app.event_handler(event,data);
+		}
+		return false;
+	}
+
+	fire(tile_id,event,data) { 
+		var tile = this.controller.get_tile(tile_id);
+		if (tile && tile != undefined) { 
+			return tile.invoke(event,data);
+		}
+		return false;
 	}
 
 	make() { 
@@ -877,6 +1027,15 @@ window.BPCRMTileCollection = class BPCRMTileCollection {
 		this.wrapper = controller.wrapper;
 		this.collection = collection;
 		this.tiles = {};
+		this.collection_ready = false;
+	}
+
+	is_collection_ready() {
+		return this.collection_ready;
+	}
+
+	get_tile(tile_id) { 
+		return this.tiles[tile_id];
 	}
 	
 	make_grid() { 
@@ -941,12 +1100,22 @@ window.BPCRMTileCollection = class BPCRMTileCollection {
 		var html = frappe.render(template,this.collection);
 		this.wrapper.querySelector('.bpcrm-dashboard-body').innerHTML = html;
 	}
+
 	make() { 
+		this.collection_ready = false;
 		this.make_grid();
 		for (var i=0; i < this.collection.tiles.length; i++) { 
 			var tile = this.collection.tiles[i];
 			this.tiles[tile.id] = new BPCRMTile(this,tile);
 			this.tiles[tile.id].make();
+		}
+		this.collection_ready = true;
+		this.ready();
+	}
+
+	ready() { 
+		for (var tile_id in this.tiles) { 
+			this.tiles[tile_id].invoke('collectionReady','');
 		}
 	}
 };
@@ -1020,6 +1189,9 @@ window.BPCRMDashboard = class BPCRMDashboard {
 			border: 1px solid rgb(0,0,0);
 			width:98vw;
 			height:85vh;
+			overflow-y:scroll;
+		}
+		.bpcrm-dashboard-body { 
 		}
 		</style>
 			<div class="col-lg-12 col-md-12 col-sm-12 rowi bpcrm-dashboard-container" >
