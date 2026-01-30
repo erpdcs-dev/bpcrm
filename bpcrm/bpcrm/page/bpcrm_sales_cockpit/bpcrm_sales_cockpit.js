@@ -1049,6 +1049,11 @@ window.BPCRMDashboard = class BPCRMDashboard {
 		this.tiles = [];
 	}
 
+	switch_dashboard(id) { 
+		this.dashboard_id = id;
+		this.load_dashboard();
+	}
+
 	load_dashboard() { 
 		var me = this;
 		frappe.call({
@@ -1069,6 +1074,9 @@ window.BPCRMDashboard = class BPCRMDashboard {
 		var me = this;
 		for (var i=0; i < this.dashboard_doc.tile_collections.length; i++) { 
 			var collection = this.dashboard_doc.tile_collections[i];
+			if (i == 0) { 
+				this.current_tile_collection = collection.tile_collection;
+			}
 			frappe.call({
 				'method' : 'frappe.client.get',
 				'args' : {
@@ -1108,6 +1116,7 @@ window.BPCRMDashboard = class BPCRMDashboard {
 		this.wrapper.innerHTML=template;
 		this.make_number_cards();
 		this.make_navbar();
+		this.open_initial_tile_collection();
 	}
 
 	make_number_cards() { 
@@ -1176,12 +1185,31 @@ window.BPCRMDashboard = class BPCRMDashboard {
 		
 	}
 
+	open_initial_tile_collection() { 
+		var collection = this.tile_collections[this.current_tile_collection];
+		this.tile_collection = new BPCRMTileCollection(this,collection);
+		this.tile_collection.make();
+		this.navbar_inactive();
+		this.wrapper.querySelector('.bpcrm-collection-' + this.current_tile_collection).classList.remove('bpcrm-cockpit-inactive');
+		this.wrapper.querySelector('.bpcrm-collection-' + this.current_tile_collection).classList.add('bpcrm-cockpit-active');
+	}
+
+	navbar_inactive() {
+		this.wrapper.querySelectorAll('.bpcrm-cockpit-nav').forEach(function(element) { 
+			element.classList.remove("bpcrm-cockpit-active");
+			element.classList.add("bpcrm-cockpit-inactive");
+		});
+	}
+
 	navbar_clicked(element) { 
 		console.log('clicked');
 		var collection_id = element.getAttribute('data-collection-id');
 		var collection = this.tile_collections[collection_id];
 		this.tile_collection = new BPCRMTileCollection(this,collection);
 		this.tile_collection.make();
+		this.navbar_inactive();
+		element.classList.remove('bpcrm-cockpit-inactive');
+		element.classList.add('bpcrm-cockpit-active');
 	}
 
 };
