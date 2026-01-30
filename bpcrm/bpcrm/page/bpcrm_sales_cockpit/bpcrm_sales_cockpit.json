@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2026-01-19 15:50:56.073796",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-01-19 15:50:56.073796",
+ "modified_by": "Administrator",
+ "module": "bpcrm",
+ "name": "bpcrm_sales_cockpit",
+ "owner": "Administrator",
+ "page_name": "bpcrm_sales_cockpit",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 1,
+ "title": "BP Dashboard"
+}

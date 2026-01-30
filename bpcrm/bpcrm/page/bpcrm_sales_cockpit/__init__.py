@@ -1,0 +1,57 @@
+import os
+import sys
+import json
+import datetime
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def get_data(doctype,filter):
+
+    try:
+        filter_doc = json.loads(filter)
+    except:
+        frappe.throw(_("Cannot unserialize filter data"))
+
+    page_size = filter_doc['page_size']
+    if not page_size:
+        page_size = 20
+
+    sort_direction = filter_doc['sort_direction']
+    sort_by = filter_doc['sort_by']
+
+    if not sort_by:
+        sort_by = "name"
+
+    if sort_direction == "Descending":
+        sort_by += " desc "
+    del(filter_doc['page_size'])
+    del(filter_doc['sort_direction'])
+    del(filter_doc['sort_by'])
+
+    where = ""
+    for name in filter_doc:
+        if filter_doc[name]:
+            value = filter_doc[name]
+            condition = "="
+            if value.find("*") >= 0:
+                value = value.replace("*","%")
+                condition = "like"
+
+            expr = ""
+            if name == "search":
+                if doctype == "bpcrm_lead":
+                    expr = "display_name " + condition + " " + frappe.db.escape(str(value))
+            else:
+                expr = name + " " + condition + " " + frappe.db.escape(str(value))
+
+            if where:
+                where += " and "
+            where += " " + expr
+
+    sql = "select * from `tab" + doctype + "` "
+    if where:
+        sql += " where "  + where
+    sql += " order by " + sort_by + " limit " + str(page_size)
+    res = frappe.db.sql(sql,as_dict=True)
+    return { 'uri' : 0, 'info' : '', 'result' : res }
